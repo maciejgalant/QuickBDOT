@@ -1,0 +1,13 @@
+QuickBDOT 0.0.37 — third-party cartographic resources
+
+QuickBDOT includes selected QML and SVG resources originating from:
+BDOT10k_GML_SHP_Loader 2.0.1
+Copyright (C) 2024 Marcin Lebiecki / Główny Urząd Geodezji i Kartografii.
+
+The original project is distributed under the GNU General Public License.
+QuickBDOT uses these resources for automatic cartographic styling of BDOT10k data.
+For classes or geometries for which the original resources do not provide a directly
+compatible QML style, QuickBDOT uses fallback styling defined in bdot_styles.py.
+
+QuickBDOT itself is distributed under the GNU General Public License version 3.
+See LICENSE for the full license text.
