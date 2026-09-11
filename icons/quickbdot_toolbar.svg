@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8BD32A"/>
+      <stop offset="55%" stop-color="#55B92F"/>
+      <stop offset="100%" stop-color="#0A9B45"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#greenGrad)"
+     font-family="Arial Rounded MT Bold, Arial Black, DejaVu Sans, sans-serif"
+     font-weight="900"
+     text-anchor="middle">
+    <text x="512" y="455" font-size="430">BD</text>
+    <text x="512" y="875" font-size="430">OT</text>
+  </g>
+</svg>
