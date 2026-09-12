@@ -1,3 +1,4 @@
+import logging
 from qgis.PyQt.QtGui import QColor
 
 from qgis.core import (
@@ -9,12 +10,14 @@ from qgis.core import (
 )
 
 
+LOGGER = logging.getLogger(__name__)
+
 def _set_symbol_common(symbol, color, opacity=1.0):
     symbol.setColor(QColor(color))
     try:
         symbol.setOpacity(opacity)
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
 
 def _set_line_width(symbol, width):
@@ -22,14 +25,14 @@ def _set_line_width(symbol, width):
         symbol.setWidth(width)
         return
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     try:
         layer = symbol.symbolLayer(0)
         if hasattr(layer, "setWidth"):
             layer.setWidth(width)
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
 
 def _set_marker_size(symbol, size):
@@ -37,14 +40,14 @@ def _set_marker_size(symbol, size):
         symbol.setSize(size)
         return
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     try:
         layer = symbol.symbolLayer(0)
         if hasattr(layer, "setSize"):
             layer.setSize(size)
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
 
 def _set_outline(symbol, color, width=0.25):
@@ -57,13 +60,13 @@ def _set_outline(symbol, color, width=0.25):
         if hasattr(symbol_layer, "setStrokeColor"):
             symbol_layer.setStrokeColor(QColor(color))
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     try:
         if hasattr(symbol_layer, "setStrokeWidth"):
             symbol_layer.setStrokeWidth(width)
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
 
 def _single_symbol(layer, fill, outline=None, width=0.35, opacity=1.0, size=2.0):

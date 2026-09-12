@@ -1,5 +1,6 @@
+import logging
 import json
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from qgis.PyQt.QtCore import QObject, QMetaType, pyqtSignal
@@ -17,10 +18,22 @@ from qgis.core import (
 from qgis.gui import QgsMapToolIdentifyFeature
 
 
+LOGGER = logging.getLogger(__name__)
+
 POWIATY_QUERY_URL = (
     "https://mapy.geoportal.gov.pl/wss/ims/maps/"
     "PRG_gugik_wyszukiwarka/FeatureServer/1/query"
 )
+
+
+def _validated_prg_url(url):
+    parsed = urlparse(str(url))
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme.lower() != "https":
+        raise ValueError("PRG URL must use HTTPS.")
+    if hostname != "mapy.geoportal.gov.pl":
+        raise ValueError("Unexpected PRG service host.")
+    return parsed.geturl()
 
 
 class AdminIdentifyTool(QgsMapToolIdentifyFeature):
@@ -92,17 +105,19 @@ class AdminSelector(QObject):
             + urlencode(params)
         )
 
+        url = _validated_prg_url(url)
+
         request = Request(
             url,
             headers={
-                "User-Agent": "QuickBDOT/0.0.37 QGIS",
+                "User-Agent": "QuickBDOT/0.0.38 QGIS",
                 "Accept": "application/json,text/plain,*/*",
             },
         )
 
         try:
 
-            with urlopen(
+            with urlopen(  # nosec B310 - fixed HTTPS Geoportal PRG endpoint
                 request,
                 timeout=45
             ) as response:
@@ -410,7 +425,7 @@ class AdminSelector(QObject):
                     )
 
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         QgsProject.instance().addMapLayer(
             layer
@@ -430,7 +445,7 @@ class AdminSelector(QObject):
             )
 
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         self.previous_map_tool = (
             self.canvas.mapTool()
@@ -549,7 +564,7 @@ class AdminSelector(QObject):
                         )
 
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         self.map_tool = None
         self.previous_map_tool = None
@@ -566,7 +581,7 @@ class AdminSelector(QObject):
                 )
 
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             self.layer = None
 

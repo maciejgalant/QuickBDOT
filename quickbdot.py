@@ -1,6 +1,8 @@
+import logging
 import re
 import tempfile
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 
 from qgis.PyQt.QtCore import Qt
@@ -61,6 +63,19 @@ from .downloader import (
 from .admin_selector import AdminSelector
 
 
+LOGGER = logging.getLogger(__name__)
+
+def _validated_download_url(url):
+    """Restrict inline downloads to HTTPS Geoportal hosts."""
+    parsed = urlparse(str(url))
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme.lower() != "https":
+        raise ValueError("Download URL must use HTTPS.")
+    if hostname != "geoportal.gov.pl" and not hostname.endswith(".geoportal.gov.pl"):
+        raise ValueError(f"Unexpected download host: {hostname or '<none>'}")
+    return parsed.geturl()
+
+
 class QuickBDOTDialog(QDialog):
 
     def __init__(self, iface, parent=None):
@@ -72,7 +87,7 @@ class QuickBDOTDialog(QDialog):
             self.update_admin_selection_label
         )
 
-        self.setWindowTitle("QuickBDOT 0.0.37")
+        self.setWindowTitle("QuickBDOT 0.0.38")
 
         plugin_icon_path = (
             Path(__file__).resolve().parent
@@ -407,7 +422,7 @@ class QuickBDOTDialog(QDialog):
 
     def show_help_dialog(self):
         text = (
-            "<b>QuickBDOT 0.0.37</b><br><br>"
+            "<b>QuickBDOT 0.0.38</b><br><br>"
             "<b>Opis wtyczki</b><br>"
             "QuickBDOT to wtyczka do QGIS przeznaczona do sprawnego pobierania, "
             "selekcji, zapisu i wizualizacji danych BDOT10k. Umożliwia określenie "
@@ -434,7 +449,7 @@ class QuickBDOTDialog(QDialog):
 
             "<b>Informacje o projekcie</b><br>"
             "Autor: Maciej Galant<br>"
-            "Wersja: 0.0.37<br>"
+            "Wersja: 0.0.38<br>"
             "Rok: 2026<br><br>"
 
             "<b>Prawa autorskie i licencja</b><br>"
@@ -470,12 +485,12 @@ class QuickBDOTDialog(QDialog):
         try:
             self.admin_selector.clear_selection()
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         try:
             self.admin_selector.stop_selection(remove_layer=True)
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         self.extent_radio.setChecked(True)
         self.gpkg_radio.setChecked(True)
@@ -817,7 +832,7 @@ class QuickBDOTDialog(QDialog):
                 0,
             )
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     def _collapse_tree(self):
         """Zamyka wszystkie gałęzie drzewa i pozostawia widok od góry."""
@@ -833,7 +848,7 @@ class QuickBDOTDialog(QDialog):
                 0,
             )
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
         self._update_tree_height()
 
     def _visible_tree_row_count(self):
@@ -862,7 +877,7 @@ class QuickBDOTDialog(QDialog):
                 max(100, min(460, wanted))
             )
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     def _build_bdot_tree(self):
         self.class_tree.clear()
@@ -1471,12 +1486,12 @@ class QuickBDOTDialog(QDialog):
         try:
             settings.allowDegradedPlacement = True
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         try:
             settings.overlapHandling = Qgis.LabelOverlapHandling.AllowOverlapIfRequired
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         if placement == "line":
             try:
@@ -1485,31 +1500,31 @@ class QuickBDOTDialog(QDialog):
                 try:
                     settings.placement = Qgis.LabelPlacement.Line
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             # Scalanie kolejnych odcinków o tej samej etykiecie ogranicza
             # powtarzanie nazwy na każdej pojedynczej geometrii.
             try:
                 settings.mergeLines = True
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             try:
                 settings.labelPerPart = False
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             settings.repeatDistance = float(repeat_distance or 0)
 
             try:
                 settings.repeatDistanceUnit = Qgis.RenderUnit.MetersInMapUnits
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
         else:
             try:
                 settings.placement = Qgis.LabelPlacement.AroundPoint
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
             settings.dist = 1.2
 
         text_format = QgsTextFormat()
@@ -1569,7 +1584,7 @@ class QuickBDOTDialog(QDialog):
         try:
             aux_layer.setRenderer(QgsNullSymbolRenderer())
         except Exception:
-            pass
+            LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         if max_scale:
             try:
@@ -1577,7 +1592,7 @@ class QuickBDOTDialog(QDialog):
                 aux_layer.setMinimumScale(float(max_scale))
                 aux_layer.setMaximumScale(0.0)
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         if not self._configure_labeling(
             aux_layer,
@@ -1636,7 +1651,7 @@ class QuickBDOTDialog(QDialog):
                 aux_layer.setMinimumScale(float(max_scale))
                 aux_layer.setMaximumScale(0.0)
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         self._add_layer_ordered(
             aux_layer,
@@ -1677,7 +1692,7 @@ class QuickBDOTDialog(QDialog):
                     # aby QGIS mógł wyświetlać jej etykiety.
                     saved_layer.setRenderer(QgsNullSymbolRenderer())
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
                 self._configure_labeling(
                     saved_layer,
@@ -1695,7 +1710,7 @@ class QuickBDOTDialog(QDialog):
                     saved_layer.setMinimumScale(25000.0)
                     saved_layer.setMaximumScale(0.0)
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             return
 
@@ -1735,7 +1750,7 @@ class QuickBDOTDialog(QDialog):
                         max_scale=None,
                     )
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             # Nazwy ulic: osobna warstwa, bez symbolu geometrycznego.
             street_expr = self._street_expression(saved_layer)
@@ -1746,7 +1761,7 @@ class QuickBDOTDialog(QDialog):
                     street_expr or "",
                 )
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             if street_expr:
                 try:
@@ -1763,7 +1778,7 @@ class QuickBDOTDialog(QDialog):
                         repeat_distance=350,
                     )
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
             else:
                 field_names = ", ".join(
                     field.name()
@@ -1783,7 +1798,7 @@ class QuickBDOTDialog(QDialog):
                     road_number_expr or "",
                 )
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             if road_number_expr:
                 try:
@@ -1800,7 +1815,7 @@ class QuickBDOTDialog(QDialog):
                         repeat_distance=1200,
                     )
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             return
 
@@ -1829,7 +1844,7 @@ class QuickBDOTDialog(QDialog):
                     saved_layer.setMinimumScale(25000.0)
                     saved_layer.setMaximumScale(0.0)
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             return
 
@@ -1863,7 +1878,7 @@ class QuickBDOTDialog(QDialog):
                         max_scale=None,
                     )
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     def _normalized_output_path(self):
         raw = self.output_path.text().strip()
@@ -1929,11 +1944,11 @@ class QuickBDOTDialog(QDialog):
                     # Shapefile does not support circular/curve geometries.
                     geom.convertToStraightSegment()
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
                 try:
                     geom.convertToMultiType()
                 except Exception:
-                    pass
+                    LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
                 dst.setGeometry(geom)
 
             out_features.append(dst)
@@ -1970,6 +1985,7 @@ class QuickBDOTDialog(QDialog):
                 if source_path == target:
                     to_remove.append(map_layer.id())
             except Exception:
+                LOGGER.debug("Skipping item after recoverable exception.", exc_info=True)
                 continue
 
         if to_remove:
@@ -2197,7 +2213,7 @@ class QuickBDOTDialog(QDialog):
                 )
             except Exception:
                 # Styl nie może zatrzymać pobierania danych.
-                pass
+                LOGGER.debug("BDOT style application failed.", exc_info=True)
 
         geometry_type = QgsWkbTypes.geometryType(saved_layer.wkbType())
 
@@ -2273,15 +2289,19 @@ class QuickBDOTDialog(QDialog):
         temp_path = temp_file.name
         temp_file.close()
 
+        url = _validated_download_url(url)
+
         request = urllib.request.Request(
             url,
             headers={
-                "User-Agent": "QuickBDOT/0.0.37 QGIS",
+                "User-Agent": "QuickBDOT/0.0.38 QGIS",
             },
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
+            with urllib.request.urlopen(  # nosec B310 - URL validated as HTTPS Geoportal
+                request, timeout=120
+            ) as response:
                 total_header = response.headers.get("Content-Length")
                 try:
                     total = int(total_header) if total_header else 0
@@ -2325,7 +2345,7 @@ class QuickBDOTDialog(QDialog):
             try:
                 Path(temp_path).unlink(missing_ok=True)
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             raise
 
@@ -2375,6 +2395,7 @@ class QuickBDOTDialog(QDialog):
                 try:
                     geometry = geometry.makeValid()
                 except Exception:
+                    LOGGER.debug("Skipping item after recoverable exception.", exc_info=True)
                     continue
 
             # makeValid może zwrócić kolekcję zawierającą elementy
@@ -2391,7 +2412,7 @@ class QuickBDOTDialog(QDialog):
                 if fixed_geom_type != source_geom_type:
                     continue
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
             new_feature.setGeometry(geometry)
             output_features.append(new_feature)
@@ -2885,7 +2906,7 @@ class QuickBDOT:
                     remove_layer=True
                 )
             except Exception:
-                pass
+                LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
         if self.action:
             self.iface.removePluginMenu(

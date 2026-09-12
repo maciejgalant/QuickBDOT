@@ -1,4 +1,4 @@
-# QuickBDOT 0.0.37
+# QuickBDOT 0.0.38
 
 **BDOT10k selection, download, export and styling directly in QGIS.**
 

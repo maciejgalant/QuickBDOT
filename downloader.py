@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -5,12 +6,13 @@ import tempfile
 import zipfile
 import hashlib
 from html.parser import HTMLParser
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from http.client import RemoteDisconnected
-import xml.etree.ElementTree as ET
 
+
+LOGGER = logging.getLogger(__name__)
 
 WMS_URL = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/BDOT/WMS/PobieranieBDOT10k"
 WMS_QUERY_LAYER = "Powiaty"
@@ -45,11 +47,23 @@ class _LinkParser(HTMLParser):
             self._text = []
 
 
+def _validate_geoportal_url(url):
+    """Accept only HTTPS URLs hosted by Geoportal domains."""
+    parsed = urlparse(str(url))
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme.lower() != "https":
+        raise ValueError(f"Unsupported URL scheme: {parsed.scheme or '<none>'}")
+    if hostname != "geoportal.gov.pl" and not hostname.endswith(".geoportal.gov.pl"):
+        raise ValueError(f"Unsupported download host: {hostname or '<none>'}")
+    return parsed.geturl()
+
+
 def _request(url):
+    url = _validate_geoportal_url(url)
     return Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 QuickBDOT/0.0.37",
+            "User-Agent": "Mozilla/5.0 QuickBDOT/0.0.38",
             "Accept": "*/*",
             "Accept-Encoding": "identity",
             "Connection": "close",
@@ -66,7 +80,7 @@ def _open_with_retry(url, timeout=HTTP_TIMEOUT):
 
     for attempt in range(HTTP_RETRIES):
         try:
-            return urlopen(
+            return urlopen(  # nosec B310 - URL is validated as HTTPS Geoportal
                 _request(url),
                 timeout=timeout,
             )
@@ -120,7 +134,7 @@ def _extract_download_url(payload, content_type):
     try:
         parser.feed(text)
     except Exception:
-        pass
+        LOGGER.debug("Optional compatibility operation failed.", exc_info=True)
 
     ranked = []
 
@@ -265,7 +279,7 @@ def download_zip(
         exist_ok=True,
     )
 
-    url_hash = hashlib.sha1(
+    url_hash = hashlib.sha256(
         url.encode("utf-8")
     ).hexdigest()[:12]
 
@@ -284,7 +298,7 @@ def download_zip(
                 try:
                     os.remove(temp_path)
                 except OSError:
-                    pass
+                    LOGGER.debug("Temporary file cleanup failed.", exc_info=True)
 
             with _open_with_retry(
                 url,
@@ -383,7 +397,7 @@ def extract_selected_classes(
                         )
                     )
                 except OSError:
-                    pass
+                    LOGGER.debug("Temporary file cleanup failed.", exc_info=True)
 
             for name in dirs:
                 try:
@@ -394,7 +408,7 @@ def extract_selected_classes(
                         )
                     )
                 except OSError:
-                    pass
+                    LOGGER.debug("Temporary file cleanup failed.", exc_info=True)
 
     os.makedirs(
         extract_dir,

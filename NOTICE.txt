@@ -1,4 +1,4 @@
-QuickBDOT 0.0.37 — third-party cartographic resources
+QuickBDOT 0.0.38 — third-party cartographic resources
 
 QuickBDOT includes selected QML and SVG resources originating from:
 BDOT10k_GML_SHP_Loader 2.0.1
